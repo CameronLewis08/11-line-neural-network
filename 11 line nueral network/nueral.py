@@ -1,60 +1,70 @@
 import numpy as np
 
 
-def nonlin(x,deriv=False):
-    if (deriv == True):
-        return x*(1-x)
-    return 1/(1+np.exp(-x))
+def nonlin(x, deriv=False):
+    """
+    Sigmoid activation function.
+    
+    Args:
+        x: Input array
+        deriv: If True, returns derivative of sigmoid
+    
+    Returns:
+        Sigmoid activation or its derivative
+    """
+    if deriv:
+        return x * (1 - x)
+    return 1 / (1 + np.exp(-x))
 
-X = np.array([[0,0,1],
-              [0,1,1],
-              [1,0,1],
-              [1,1,1]])
+
+# ===== Data Preparation =====
+X = np.array([[0, 0, 1],
+              [0, 1, 1],
+              [1, 0, 1],
+              [1, 1, 1]])
 
 y = np.array([[0],
               [1],
               [1],
               [0]])
 
+# ===== Network Initialization =====
 np.random.seed(1)
 
-syn0 = 2*np.random.random((3,4)) - 1
-"""
-adding another layer to the nueral network brings it to the realm of deep learning\
-"""
-syn1 = 2*np.random.random((4,1)) - 1
+# Hidden layer weights (3 inputs -> 4 hidden units)
+weights_hidden = 2 * np.random.random((3, 4)) - 1
 
-"""
-First example without syn1
-for iter in range(10000):
-    l0 = X
-    l1 = nonlin(np.dot(l0,syn0))
+# Output layer weights (4 hidden units -> 1 output)
+# Adding another layer to the neural network brings it to the realm of deep learning
+weights_output = 2 * np.random.random((4, 1)) - 1
 
-    l1_error = y - l1
-    l1_delta = l1_error*nonlin(l1,True)
-    syn0 += np.dot(l0.T,l1_delta)
+# ===== Training Parameters =====
+ITERATIONS = 60000
+OUTPUT_FREQUENCY = 10000
 
-print("\n output after training \n")
-print(l1)
-print("\n")
-print(l1_error)
-"""
+# ===== Training Loop =====
+for iteration in range(ITERATIONS):
+    # Forward pass
+    layer0_output = X
+    layer1_output = nonlin(np.dot(layer0_output, weights_hidden))
+    layer2_output = nonlin(np.dot(layer1_output, weights_output))
 
-for j in range(60000):
-    l0 = X
-    l1 = nonlin(np.dot(l0,syn0))
-    l2 = nonlin(np.dot(l1,syn1))
+    # Calculate error
+    layer2_error = y - layer2_output
 
-    l2_error = y-l2
+    # Print progress
+    if iteration % OUTPUT_FREQUENCY == 0:
+        print(f"Iteration {iteration}: error: {np.mean(np.abs(layer2_error)):.6f}")
 
-    if j% 10000 == 0:
-        print("error:"+ str(np.mean(np.abs(l2_error))))
+    # Backward pass - calculate deltas
+    layer2_delta = layer2_error * nonlin(layer2_output, deriv=True)
 
-    l2_delta = l2_error*nonlin(l2,True)
+    layer1_error = layer2_delta.dot(weights_output.T)
+    layer1_delta = layer1_error * nonlin(layer1_output, deriv=True)
 
-    l1_error = l2_delta.dot(syn1.T)
-    l1_delta = l1_error*nonlin(l1,True)
+    # Update weights
+    weights_output += layer1_output.T.dot(layer2_delta)
+    weights_hidden += layer0_output.T.dot(layer1_delta)
 
-    syn1 += l1.T.dot(l2_delta)
-    syn0 += l0.T.dot(l1_delta)
-
+print("\n=== Training Complete ===")
+print(f"Final output predictions:\n{layer2_output}")
